@@ -1,0 +1,7 @@
+﻿  Main.cpp
+I:\SLG\SLG\SLG\Main.cpp(24,42): warning C4100: 'ifPlayer': 引数は関数の本体部で 1 度も参照されません。
+  (ソース ファイル '/Main.cpp' をコンパイルしています)
+  
+  SLG.vcxproj -> I:\SLG\SLG\Intermediate\SLG\Debug\SLG(debug).exe
+  I:\SLG\SLG\Intermediate\SLG\Debug\SLG(debug).exe
+  1 個のファイルをコピーしました
