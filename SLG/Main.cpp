@@ -6,27 +6,73 @@ struct Territory {
 	int soldiers;
 	int growthRate;
 	Color color;
-	bool isPlayer, isNeutral,isEnemy;
+	bool isPlayer, isNeutral, isEnemy;
 	std::vector<Territory*> connections;
-	const timer;
+	int attackSoldier = 1;
 
 	// 毎秒兵士を増やす
 	void update() {
-		if(timer == 60){
-		if (!isNeutral) soldiers += growthRate;
-		}
+		addSoldiers();
 	}
+
 	void addConnection(Territory* target) {
 		connections.push_back(target);
 	}
+
+	void attack(Territory* target) {
+		// 敵の領地に攻撃する場合
+		if (color != target->color) {
+			soldiers -= attackSoldier;
+
+			// 攻撃目標の兵士数がまだ残っている場合
+			if (target->soldiers > 0) {
+				target->soldiers -= attackSoldier;
+
+				// 目標の兵士数が0未満になった場合は領地を占領する
+				if (target->soldiers < 0) {
+					target->color = color;     // 領地の色を自国の色に変更
+					target->isPlayer = true;
+					target->isNeutral = false;
+					target->isEnemy = !isPlayer;
+
+					// 負の兵士数を自国に変換
+					target->soldiers = -target->soldiers;
+				}
+			}
+		}
+	}
+
 	// 領地を描画
-	void draw() const {
+	void draw() {
 		Circle(position, 40).draw(color);
 		FontAsset(U"Default")(U"{:02}"_fmt(soldiers)).drawAt(position, Palette::White);
+		for (auto* target : connections) {
+			Vec2 direction = (target->position - position).normalized();
+			double length = position.distanceFrom(target->position) - 40; // 領地のサイズを考慮
+			Line arrowLine{ position + (direction * (length / 2 + 25)), position + (direction * (length - 5)) };
+
+			// 矢印の描画（プレイヤーなら緑、それ以外は白）
+			if (isPlayer) {
+				arrowLine.drawArrow(20, SizeF{ 20, 40 }, Palette::Green);
+			}
+			else {
+				arrowLine.drawArrow(20, SizeF{ 20, 40 }, Palette::White);
+			}
+
+			// プレイヤーの領地かつカーソルが矢印上にある場合にクリック処理を許可
+			if (isPlayer && arrowLine.intersects(Cursor::PosF())) {
+				Cursor::RequestStyle(CursorStyle::Hand); // カーソルを「手」の形に
+
+				if (MouseL.down()) {
+					attack(target); // targetに攻撃
+				}
+			}
+		}
 	}
-	void AttactButton(const Rect& rect,bool ifPlayer)
-	{
-		rect.draw(ColorF{ 0.3, 0.7, 1.0 });
+
+	// 毎秒兵士を増やす関数
+	void addSoldiers() {
+		if (isPlayer || isEnemy) soldiers += growthRate;
 	}
 };
 
@@ -34,13 +80,16 @@ struct Territory {
 
 void Main()
 {
-
 	FontAsset::Register(U"Default", 20);
 
+	const int growthTime = 3;
+	Stopwatch stopwatch; // ストップウォッチを宣言
+	stopwatch.start();
+
 	// 領地の設定
-	Territory playerTerritory{ Vec2(100, 300), 10, 1, Palette::Blue, true };
-	Territory enemyTerritory{ Vec2(700, 300), 10, 1, Palette::Red, false };
-	Territory neutralTerritory{ Vec2(300, 200), 5, 0, Palette::Gray, false };
+	Territory playerTerritory{ Vec2(100, 300), 10, 5, Palette::Blue, true, false, false };
+	Territory enemyTerritory{ Vec2(700, 300), 10, 5, Palette::Red, false, false, true };
+	Territory neutralTerritory{ Vec2(300, 200), 5, 0, Palette::Gray, false, true, false };
 
 	// 領地の接続設定
 	playerTerritory.addConnection(&neutralTerritory);
@@ -54,17 +103,18 @@ void Main()
 	// ゲームループ
 	while (System::Update())
 	{
-		for (auto *territory : territories) {
-			territory->update();
+		// 領地を描画
+		for (auto* territory : territories) {
 			territory->draw();
 		}
-		for (auto* territory : territories) {
-			for (auto* target : territory->connections) {
-				Vec2 direction = (target->position - territory->position).normalized();
-				double length = territory->position.distanceFrom(target->position) - 40; // 領地のサイズを考慮
-				Shape2D::Arrow(territory->position+ (direction * (length - 5)), territory->position+ (direction * (length/2 + 25)), 10, Vec2(20, 20)).draw(Palette::White);
-			}
-		}
 
+		// growthTime経過ごとに兵士を増加
+		if (stopwatch.s() >= growthTime) {
+			for (auto* territory : territories) {
+				territory->addSoldiers();
+			}
+			stopwatch.restart(); // タイマーをリセット（ループ外に移動）
+		}
 	}
 }
+
