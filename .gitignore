@@ -3,6 +3,7 @@
 .vscode/
 ## .vsconfig: 多分これも要らない
 *.vsconfig
+Intermediate/
 
 # Unity
 ## https://github.com/github/gitignore/blob/main/Unity.gitignore
