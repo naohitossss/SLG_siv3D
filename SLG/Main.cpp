@@ -84,7 +84,7 @@ public:
 	void attackButton(Territory& thisTerritory, Territory& target, const Line& arrowLine) {
 		if (thisTerritory.owner == Owner::Player && arrowLine.intersects(Cursor::PosF())) {
 			Cursor::RequestStyle(CursorStyle::Hand); // カーソルを「手」の形に変更
-			if (MouseL.down() && thisTerritory.soldiers > attackSoldier) {
+			if (MouseL.down() && thisTerritory.soldiers >= attackSoldier) {
 				attack(thisTerritory, target); // クリック時に攻撃を実行
 			}
 		}
@@ -150,8 +150,12 @@ public:
 	}
 
 	void gameReset(vector<reference_wrapper<Territory>>& resetTerritories) {
+		Territory playerTerritory{ Vec2(100, 300), 10, 3, Palette::Blue,Owner::Player };
+		Territory enemyTerritory{ Vec2(700, 300), 10, 3, Palette::Red, Owner::Enemy };
+		Territory neutralTerritory{ Vec2(300, 200), 5, 3, Palette::Gray, Owner::Neutral };
 
-		territories = { playerTerritory, neutralTerritory, enemyTerritory };
+		vector<reference_wrapper<Territory>> territories = { playerTerritory, neutralTerritory, enemyTerritory };
+		resetTerritories = territories;
 	}
 
 private:
@@ -185,8 +189,12 @@ void Main()
 	while (System::Update())
 	{
 		if (SimpleGUI::Button(U"Rest", Vec2{ 20, 20 })) {
-			territories = game.getTerritories();
+			game.gameReset(territories);
 			//FontAsset(U"Default")(U"Rest").drawAt(Scene::Center(), Palette::Yellow);
+		}
+		//else stage.checkWin(territories, ifWin, ifLose);
+		if (SimpleGUI::Button(U"SetSolider to 1", Vec2{ 20, 460 })) {
+			stage.Setattacksoldier(1);
 		}
 		if (SimpleGUI::Button(U"SetSolider to 5", Vec2{ 20, 500 })) {
 			stage.Setattacksoldier(5);
@@ -195,7 +203,7 @@ void Main()
 			stage.Setattacksoldier(10);
 		}
 		// 勝敗判定
-		stage.checkWin(territories, ifWin, ifLose);
+		//stage.checkWin(territories, ifWin, ifLose);
 
 		if (ifWin) {
 			FontAsset(U"Default")(U"YOU WIN").drawAt(Scene::Center(), Palette::Yellow);
